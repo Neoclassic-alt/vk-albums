@@ -1,0 +1,42 @@
+<!-- Автор: Истигечев Борис -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script>
+    let offset = 0
+    let results = []
+	let access_token = "Ваш access_token"
+	let album_id = "302269859"
+  </script>
+  <script type="text/javascript">
+    function callbackFunc(result) {
+      const _result = result.response.items.map((item) => {
+        const {sizes, ...rest} = item;
+        return rest
+      })
+      results = results.concat(_result)
+    }
+    function fetchPhotos() {
+      var script = document.createElement('SCRIPT');
+      script.src = `http://api.vk.ru/method/photos.get?owner_id=-39439883&album_id=${album_id}&count=1000&offset=${offset}&rev=1&extended=1&photo_sizes=0&callback=callbackFunc&access_token=${access_token}&v=5.199`;
+      document.getElementsByTagName("head")[0].appendChild(script);
+      offset += 1000
+    }
+ </script>
+ <script>
+  const timer1 = setInterval(fetchPhotos, 500)
+  setTimeout(() => {
+    clearInterval(timer1)
+  }, 5000)
+  setTimeout(() => {
+    console.log(results)
+  }, 10000)
+ </script>
+</head>
+<body>
+  
+</body>
+</html>

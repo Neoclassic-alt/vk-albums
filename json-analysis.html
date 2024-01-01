@@ -1,0 +1,158 @@
+<!-- Автор: Истигечев Борис -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script>
+	Date.prototype.getWeek = function() {
+			var dt = new Date(this.getFullYear(), 0, 1);
+			return Math.ceil((((this - dt) / 86400000) + dt.getDay() + 1)/7);
+	}
+	let photos
+	const authors = []
+	const frequency = {}
+	const photos_by_date = {}
+	const photos_by_month = {}
+	let photos_by_likes = [] // index - число фото с таким числом лайков
+	let photos_by_comments = []  // index - число фото с таким числом комментов
+	const response = fetch('http://localhost:3000/photos').then(res => res.json()).then((photos) => {
+		photos.forEach(item => authors.push(item.user_id))
+		console.log("Число авторов заливов ", new Set(authors))
+		authors.forEach((user_id) => {
+			if (user_id in frequency){
+				frequency[user_id] += 1
+			} else {
+				frequency[user_id] = 1
+			}
+		})
+		const freq_array = Object.entries(frequency)
+		const clean_freq = Object.values(frequency)
+		
+		console.log("Встречаемость авторов ", Object.entries(freq_array).sort((a, b) => a[1] - b[1]))
+		
+		console.log(freq_array.sort((a, b) => a[1] - b[1]).slice(-100))
+		
+		const top_10_percent = freq_array.sort((a, b) => a[1] - b[1]).slice(freq_array.length - 100).reduce((acc, item) => {
+			const sum = acc + item[1]
+			
+			return sum
+		}, 0)
+		
+		console.log("Топ-100 авторов залили ", top_10_percent)
+		
+		const share = 1 / clean_freq.length
+		const photos_count = photos.length
+		
+		const gini_coeff = clean_freq.sort((a, b) => a - b).reduce((acc, item, index, array) => {
+			if (!index){
+				return 0
+			}
+			
+			const sum = acc + (array[index] / photos_count + array[index - 1] / photos_count)
+			
+			return sum
+		}, 0)
+		
+		console.log("Коэффициент Джини для альбомов (залив трактуается как доход): ", 1 - gini_coeff)
+		
+		photos.forEach((item) => {
+			const date = new Date((item.date + 60 * 3 * 60) * 1000)
+			const day = `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`
+			if (day in photos_by_date){
+				photos_by_date[day] += 1
+			} else {
+				photos_by_date[day] = 1
+			}
+		})
+		
+		console.log("Встречаемость по дням", Object.entries(photos_by_date).sort((a, b) => a[1] - b[1]))
+
+		console.table(photos_by_date)
+		
+		photos.forEach((item) => {
+			const date = new Date((item.date + 60 * 3 * 60) * 1000)
+			const month = `${date.getMonth() + 1}.${date.getFullYear()}`
+			if (month in photos_by_month){
+				photos_by_month[month] += 1
+			} else {
+				photos_by_month[month] = 1
+			}
+		})
+		
+		console.log("Количество заливов по месяцам", Object.entries(photos_by_month).sort((a, b) => a[1] - b[1]))
+		
+		const is_text = photos.reduce((acc, item) => {
+			let descr_count = acc
+			if (item.text) {
+				descr_count += 1
+			}
+			
+			return descr_count
+		}, 0)
+		
+		console.log("По крайней мере ", Math.round(is_text / photos_count * 1000) / 10, "% заливов имеют описание")
+		
+		const most_long_descr = photos.map((item) => ({id: item.id, length: item.text.length}))
+		
+		console.log(most_long_descr.sort((a, b) => a.length - b.length).slice(-10))
+
+		/*
+		const most_liked_photos = photos.toSorted((a,b) => a.likes.count - b.likes.count).slice(-10)
+		const max_likes = most_liked_photos[9].likes.count
+		console.log("Топ-10 заливов по лайкам", most_liked_photos)
+
+		const most_commented_photos = photos.toSorted((a,b) => a.comments.count - b.comments.count).slice(-10)
+		const max_comments = most_liked_photos[9].comments.count
+		console.log("Топ-10 заливов по комментариям", most_commented_photos)
+
+		photos_by_likes = new Array(max_likes + 1).fill(0)
+
+		console.log(photos_by_likes)
+
+		photos.forEach((item) => {
+			photos_by_likes[item.likes.count] += 1
+		})
+
+		console.table(photos_by_likes)
+		*/
+
+		// Частота упоминания бабве и копиума, индекс бабве
+
+		const babwe_photos = photos.filter((item) => item.text.toLowerCase().includes("бабв") && !item.text.toLowerCase().includes("антибабв") && !item.text.toLowerCase().includes("не бабв") && !item.text.toLowerCase().includes("зимбабве"))
+		const babwe_by_week = {}
+
+		babwe_photos.forEach((item) => {
+			const date = new Date((item.date + 60 * 3 * 60) * 1000)
+			const week = date.getWeek()
+			if (week in babwe_by_week) {
+				babwe_by_week[week] += 1
+			} else {
+				babwe_by_week[week] = 1
+			}
+		})
+		console.table(babwe_by_week)
+
+		const copium_photos = photos.filter((item) => item.text.toLowerCase().includes("копиум") || item.text.toLowerCase().includes("антибабв"))
+		const copium_by_week = {}
+
+		copium_photos.forEach((item) => {
+			const date = new Date((item.date + 60 * 3 * 60) * 1000)
+			const week = date.getWeek()
+			if (week in copium_by_week) {
+				copium_by_week[week] += 1
+			} else {
+				copium_by_week[week] = 1
+			}
+		})
+		console.table(copium_by_week)
+
+		console.log("Заливы с копиумом", copium_photos)
+	})
+  </script>
+</head>
+<body>
+  
+</body>
+</html>
